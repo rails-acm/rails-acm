@@ -1,0 +1,55 @@
+class <%= migration_class_name %> < ActiveRecord::Migration<%= migration_version %>
+  def change
+    create_table :rails_acm_acme_identities do |t|
+      t.string :encrypted_private_key
+      t.string :encrypted_private_key_iv
+      t.string :email
+      t.string :key_identifier
+
+      t.timestamps
+    end
+
+    create_table :rails_acm_ssl_keypairs do |t|
+      t.references :acme_identity, index: true
+      t.string :encrypted_private_key
+      t.string :encrypted_private_key_iv
+      t.string :certificate_signing_request
+      t.string :certificate
+
+      t.timestamps
+    end
+
+    add_foreign_key :rails_acm_ssl_keypairs, :rails_acm_acme_identities, column: :acme_identity_id
+
+    create_table :rails_acm_domain_names do |t|
+      t.references :ssl_keypair, index: true
+      t.string :hostname
+
+      t.timestamps
+    end
+
+    add_foreign_key :rails_acm_domain_names, :rails_acm_ssl_keypairs, column: :ssl_keypair_id
+
+    create_table :rails_acm_http_challenges do |t|
+      t.references :domain_name, index: true
+      t.string :filename
+      t.string :file_content
+      t.string :token
+
+      t.timestamps
+    end
+
+    add_foreign_key :rails_acm_http_challenges, :rails_acm_domain_names, column: :domain_name_id
+
+    create_table :rails_acm_heroku_ssl_endpoints do |t|
+      t.references :ssl_keypair, index: { name: "heroku_endpoint_ssl_keypair_fk_idx" }
+      t.string :heroku_app_id
+      t.string :heroku_endpoint_id
+      t.integer :endpoint_type, default: 0, null: false
+
+      t.timestamps
+    end
+
+    add_foreign_key :rails_acm_heroku_ssl_endpoints, :rails_acm_ssl_keypairs, column: :ssl_keypair_id
+  end
+end
